@@ -155,18 +155,18 @@ function Ball(x=0, y=0, speedX=1, speedY=1, size=10, color='#000'){
                         }
                     }
                     break;
-                case 'left':
-                    if(futureX >= barre.x && futureX <= (barre.x + barre.w)){
-                        if(futureY >= barre.y && futureY <= (barre.y + barre.h)){
-                            this.collisionX();
-                        }
-                    }
-                    break;
                 case 'bottom':
                     futureY = futureY + (2*BLOCK_SIZE);
                     if(futureX >= barre.x && futureX <= (barre.x + barre.w)){
                         if(futureY >= barre.y && futureY <= (barre.y + barre.h)){
                             this.collisionY();
+                        }
+                    }
+                    break;
+                case 'left':
+                    if(futureX >= barre.x && futureX <= (barre.x + barre.w)){
+                        if(futureY >= barre.y && futureY <= (barre.y + barre.h)){
+                            this.collisionX();
                         }
                     }
                     break;
@@ -233,7 +233,6 @@ io.on('connection', (socket) => {
         });
 
         barData = getPlayerPose(players, positions);
-        console.log(barData);
 
         if(createPlayer){
             newBar = new Bar(FIELD_WIDTH/2-BAR_WIDTH/2, ((FIELD_HEIGTH) - (BAR_HEIGTH + BAR_DECALLAGE)), BAR_SPEED, BAR_HEIGTH, BAR_WIDTH, socket.id, 'rgb('+barData.color+')', barData.position);
@@ -246,7 +245,6 @@ io.on('connection', (socket) => {
 
     let fieldData = null;
     if(newBar !== null && barData !== null){
-        console.log(barData.color);
         fieldData = {
             field:field,
             color:barData.color,
@@ -259,14 +257,12 @@ io.on('connection', (socket) => {
             position: positions[0],
         }
     }
-    console.log(fieldData);
     socket.emit('setField', fieldData);
     if(interval) clearInterval(interval);
 
     socket.on('disconnect', () => {
        for(var x=0; x<players.length; x++){
             if(socket.id === bars[x].player && socket.id === players[x].id){
-                console.log(bars[x].position);
                 positions[bars[x].position] = false;
                 bars.splice(x, 1);
                 players.splice(x, 1);
