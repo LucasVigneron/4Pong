@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Play Pong | Lucas</title>
+</head>
+<style>
+    @import url('https://fonts.googleapis.com/css?family=Roboto+Condensed:300i,400,400i,700,700i');
+
+    html, body{
+        margin: 0;
+        padding: 0;
+        text-shadow: 0 0 20px rgba(0,0,0,.2);
+    }
+    main{
+        min-height: 100vh;
+        font-family: 'Roboto Condensed';
+        color: #FFF;
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+        align-items: center;
+        background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+    h1{
+        font-size: 60px;
+        margin: 30px 0 0 0;
+    }
+    p{
+        margin: 0;
+    }
+    #canvas{
+        border: 10px solid #FFF;
+        border-radius: 5px;
+        margin: auto;
+    }
+    #ball{
+        width: 5px;
+        height: 5px;
+        border-radius: 5px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        background-color: black;
+        display: none;
+    }
+</style>
+<body>
+<div class="wrapper">
+    <main>
+        <h1>Welcome to Pong</h1>
+        <p id="playing_message">Il y a <span id="player_number"></span> joueurs connectés...</p>
+        <canvas id="canvas">
+
+        </canvas>
+    </main>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    let KEY_LEFT = 37;
+    let KEY_RIGHT = 39;
+    let KEY_Q = 81;
+    let KEY_D = 68;
+
+    const positions = {
+        'bottom': 0,
+        'left':90,
+        'top':180,
+        'right':270,
+    };
+
+    window.addEventListener('load', () => {
+        var socket = io('/');
+        const canvasField = document.getElementById('canvas');
+
+        socket.on('setField', (fieldData) => {
+            let field = fieldData.field;
+            let color = fieldData.color;
+            let position = fieldData.position;
+            canvasField.setAttribute('width', field.x);
+            canvasField.setAttribute('height', field.y);
+            canvasField.style.transform = 'rotate(-'+positions[position]+'deg)';
+            canvasField.style.backgroundColor = 'rgba('+color+',.1)';
+            if(position === 'top' || position === 'right'){
+                KEY_LEFT = 39;
+                KEY_Q = 68;
+                KEY_RIGHT = 37;
+                KEY_D = 81;
+            }
+        });
+        socket.on('max', () => {
+            alert('Mode spectateur');
+            var message = document.createElement('p');
+            message.textContent = 'Vous êtes en mode spectateur...';
+            document.getElementsByTagName('main')[0].insertBefore(message, document.getElementById('playing_message'));
+        });
+        socket.on('gamerefresh', (data) => {
+            var ctx = canvasField.getContext("2d");
+            var ball = data.ball;
+            var bars = data.bars;
+            var players = data.players;
+            document.getElementById('player_number').textContent = players.length;
+            console.log(socket.id);
+            console.log(bars);
+            ctx.clearRect(0, 0, canvasField.width, canvasField.height);
+            for(var x=0; x<bars.length; x++){
+                ctx.fillStyle = bars[x].color;
+                ctx.fillRect(bars[x].x, bars[x].y, bars[x].w, bars[x].h);
+            }
+            ctx.fillStyle = ball.color;
+            ctx.beginPath();
+            ctx.arc((ball.x + ((ball.size)/2)), (ball.y + ((ball.size)/2)), (ball.size/2), 0, 2*Math.PI, false);
+            ctx.fill();
+        });
+        window.addEventListener('keydown', (e) => {
+            let code = e.keyCode;
+            if(code === KEY_LEFT || code === KEY_RIGHT || code === KEY_D || code === KEY_Q){
+                if(e.keyCode === KEY_LEFT || e.keyCode === KEY_Q){
+                    socket.emit('moveBar', 'left');
+                } else if(e.keyCode === KEY_RIGHT || e.keyCode === KEY_D){
+                    socket.emit('moveBar', 'right');
+                }
+            }
+        });
+    });
+</script>
+</body>
+</html>
