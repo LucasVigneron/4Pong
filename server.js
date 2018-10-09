@@ -124,9 +124,7 @@ function Ball(x=0, y=0, speedX=1, speedY=1, size=10, color='#000'){
         this.y = this.y + this.speedY;
     };
     this.move = (field, bars) => {
-        //console.log(Math.atan2((this.x + this.speedX) - (this.x), (this.y + this.speedY) - this.y));
         // Move X
-        // Vérification de colision
         if((this.x + this.size) <= (field.x) && this.x >= 0){
             this.x = this.x + this.speedX;
         } else{
@@ -139,13 +137,10 @@ function Ball(x=0, y=0, speedX=1, speedY=1, size=10, color='#000'){
             this.collisionY();
         }
 
-        // Collision avec les bars
         for(bar in bars){
             let barre = bars[bar];
             let futureX = this.x + this.speedX;
             let futureY = this.y + this.speedY;
-
-            // Si on est entre les deux extrémités de la barre
 
             switch (barre.position) {
                 case 'top':
@@ -180,14 +175,6 @@ function Ball(x=0, y=0, speedX=1, speedY=1, size=10, color='#000'){
                     break;
             }
         }
-
-        //for(var x=0; x<bars.length; x++){
-        //    if(((this.y + this.size/2) + this.speedY) >= (bars[x].y - bars[x].h)){
-        //        if((this.x) > (bars[x].x) && (this.x) < (bars[x].x + bars[x].w)){
-        //            this.collisionY();
-        //        }
-        //    }
-        //}
     }
 }
 ////////// ----- End of objects required to the game ----- //////////
