@@ -2,12 +2,14 @@ const fs = require('fs');
 const http = require('http');
 const server = http.createServer();
 
+const DEFAULT_POINTS = 10;
+
 const positions = {
     'bottom' : false,
     'top' : false,
     'left' : false,
     'right' : false,
-}
+};
 const colors = {
     'bottom' : '241,196,15',
     'left' : '52,152,219',
@@ -21,25 +23,37 @@ const MAX_PLAYERS = 4;
 
 const BLOCK_SIZE = 15;
 
+// FIELD VALUES
 const FIELD_WIDTH = 40 * BLOCK_SIZE;
 const FIELD_HEIGTH = 40 * BLOCK_SIZE;
 const FRAMERATE = 1;
 
+// BAR VALUES
 const BAR_SPEED = BLOCK_SIZE / 1;
 const BAR_WIDTH = 15 * BLOCK_SIZE;
 const BAR_HEIGTH = BLOCK_SIZE;
 const BAR_DECALLAGE = BLOCK_SIZE / 2;
 
+// BALL VALUES
 let BALL_SPEED_X = .2;
 let BALL_SPEED_Y = .2;
 const BALL_COLOR = "#FFF";
 const BALL_SIZE = BLOCK_SIZE * 2;
 
-
+// USED VALUES
 let tampon = null;
 let newPosition = null;
 
 let players = [];
+
+function Points(defaultPoints, position){
+    this.points = defaultPoints;
+    this.position = position;
+
+    this.removePoint = () => {
+        this.points--;
+    }
+}
 
 ////////// ----- Objects required to the game ----- //////////
 function Field(x=0, y=0){
@@ -108,6 +122,16 @@ function Bar(x=0, y=0, speed=1, height, width, id, color, position){
 
 let barreY = null;
 
+const managePoints = (position, param = 'remove') => {
+    if(param === 'remove'){
+        for(i in points){
+            if(points[i].position === position){
+                points[i].removePoint();
+            }
+        }
+    }
+};
+
 function Ball(x=0, y=0, speedX=1, speedY=1, size=10, color='#000'){
     this.x = x;
     this.y = y;
@@ -128,12 +152,22 @@ function Ball(x=0, y=0, speedX=1, speedY=1, size=10, color='#000'){
         if((this.x + this.size) <= (field.x) && this.x >= 0){
             this.x = this.x + this.speedX;
         } else{
+            if(this.x < 0){
+                managePoints('left', 'remove');
+            } else{
+                managePoints('right', 'remove');
+            }
             this.collisionX();
         }
         // Move Y
         if((this.y + this.size) <= (field.y) && this.y >= 0){
             this.y = this.y + this.speedY;
         } else{
+            if(this.y < 0){
+                managePoints('top', 'remove');
+            } else{
+                managePoints('bottom', 'remove');
+            }
             this.collisionY();
         }
 
@@ -182,8 +216,9 @@ if(Math.random() < .5) BALL_SPEED_Y = -BALL_SPEED_Y;
 if(Math.random() < .5) BALL_SPEED_X = -BALL_SPEED_X;
 let field = new Field(FIELD_WIDTH,FIELD_HEIGTH);
 let ball = new Ball((FIELD_WIDTH / 2), (FIELD_HEIGTH / 2), BALL_SPEED_X, BALL_SPEED_Y, BALL_SIZE, BALL_COLOR);
-let bars = [];
 
+let bars = [];
+let points = [];
 let interval;
 
 const getPlayerPose = function(players, positions){
@@ -209,6 +244,7 @@ const getPlayerPose = function(players, positions){
 io.on('connection', (socket) => {
 
     let newBar = null;
+    let newPoints = null;
     let barData = null;
     if(players.length < MAX_PLAYERS){
 
@@ -222,9 +258,11 @@ io.on('connection', (socket) => {
         barData = getPlayerPose(players, positions);
 
         if(createPlayer){
+            newPoints = new Points(DEFAULT_POINTS, barData.position);
             newBar = new Bar(FIELD_WIDTH/2-BAR_WIDTH/2, ((FIELD_HEIGTH) - (BAR_HEIGTH + BAR_DECALLAGE)), BAR_SPEED, BAR_HEIGTH, BAR_WIDTH, socket.id, 'rgb('+barData.color+')', barData.position);
             newBar.setBar();
             bars.push(newBar);
+            points.push(newPoints);
         }
     } else{
         socket.emit('max');
@@ -233,15 +271,15 @@ io.on('connection', (socket) => {
     let fieldData = null;
     if(newBar !== null && barData !== null){
         fieldData = {
-            field:field,
-            color:barData.color,
-            position:newBar.position,
+            field       : field,
+            color       : barData.color,
+            position    : newBar.position,
         }
     } else{
         fieldData = {
-            field:field,
-            color:colors[0],
-            position: positions[0],
+            field       : field,
+            color       : colors[0],
+            position    : positions[0],
         }
     }
     socket.emit('setField', fieldData);
@@ -250,6 +288,12 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
        for(var x=0; x<players.length; x++){
             if(socket.id === bars[x].player && socket.id === players[x].id){
+                let position = bars[x].position;
+                for(i in points){
+                    if(points[i].position === position){
+                        points.splice(i, 1)
+                    }
+                }
                 positions[bars[x].position] = false;
                 bars.splice(x, 1);
                 players.splice(x, 1);
@@ -262,9 +306,10 @@ io.on('connection', (socket) => {
         if(counter == 20){
             counter = 0;
             io.emit('gamerefresh', {
-                ball: ball,
-                bars: bars,
-                players: players,
+                ball    : ball,
+                bars    : bars,
+                players : players,
+                points  : points,
             });
         }
         counter++;

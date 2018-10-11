@@ -32,6 +32,15 @@
     p{
         margin: 0;
     }
+    .canvas-holder{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .points{
+        font-size: 40px;
+        margin: 10px;
+    }
     #canvas{
         border: 10px solid #FFF;
         border-radius: 5px;
@@ -53,9 +62,13 @@
     <main>
         <h1>Welcome to Pong</h1>
         <p id="playing_message">Il y a <span id="player_number"></span> joueurs connectés...</p>
-        <canvas id="canvas">
-
-        </canvas>
+        <p id="top-points" class="points"></p>
+        <div class="canvas-holder">
+            <p id="left-points" class="points"></p>
+            <canvas id="canvas"></canvas>
+            <p id="right-points" class="points"></p>
+        </div>
+        <p id="bottom-points" class="points"></p>
     </main>
 </div>
 <script src="/socket.io/socket.io.js"></script>
@@ -64,6 +77,11 @@
     let KEY_RIGHT = 39;
     let KEY_Q = 81;
     let KEY_D = 68;
+
+    const topPoints = document.getElementById('top-points');
+    const leftPoints = document.getElementById('left-points');
+    const rightPoints = document.getElementById('right-points');
+    const bottomPoints = document.getElementById('bottom-points');
 
     const positions = {
         'bottom': 0,
@@ -98,13 +116,26 @@
             document.getElementsByTagName('main')[0].insertBefore(message, document.getElementById('playing_message'));
         });
         socket.on('gamerefresh', (data) => {
-            var ctx = canvasField.getContext("2d");
-            var ball = data.ball;
-            var bars = data.bars;
-            var players = data.players;
+            let ctx = canvasField.getContext("2d");
+            let ball = data.ball;
+            let bars = data.bars;
+            let players = data.players;
+            let points = data.points;
+
+            let position = null;
+            let pointsElements = null;
+            let pointsValue = null;
+
+            for(i in points){
+                position = points[i].position;
+                pointsValue = points[i].points;
+                if(position === 'bottom' || position === 'top' || position === 'left' || position === 'right'){
+                    pointsElements = eval(position+'Points');
+                    pointsElements.textContent = pointsValue;
+                }
+            }
+
             document.getElementById('player_number').textContent = players.length;
-            console.log(socket.id);
-            console.log(bars);
             ctx.clearRect(0, 0, canvasField.width, canvasField.height);
             for(var x=0; x<bars.length; x++){
                 ctx.fillStyle = bars[x].color;
