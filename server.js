@@ -2,7 +2,7 @@ const fs = require('fs');
 const http = require('http');
 const server = http.createServer();
 
-const DEFAULT_POINTS = 10;
+const DEFAULT_POINTS = 5;
 
 const positions = {
     'bottom' : false,
@@ -125,8 +125,19 @@ let barreY = null;
 const managePoints = (position, param = 'remove') => {
     if(param === 'remove'){
         for(i in points){
-            if(points[i].position === position){
+            if(points[i].position === position && points[i].points > 0){
                 points[i].removePoint();
+                if(points[i].points === 0){
+                    points[i].points = "";
+                    for(y in bars){
+                        if(bars[y].position === points[i].position){
+                            bars.splice(y, 1);
+                            io.to(players[y].id).emit('dead');
+                            players.splice(y, 1);
+                            positions[points[i].position]= false;
+                        }
+                    }
+                }
             }
         }
     }
@@ -254,7 +265,6 @@ io.on('connection', (socket) => {
             id: socket.id,
             number: createPlayer,
         });
-
         barData = getPlayerPose(players, positions);
 
         if(createPlayer){

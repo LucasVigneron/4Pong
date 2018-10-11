@@ -41,10 +41,16 @@
         font-size: 40px;
         margin: 10px;
     }
+    #game{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
     #canvas{
         border: 10px solid #FFF;
         border-radius: 5px;
         margin: auto;
+        transition: background-color 500ms ease, transform 500ms ease;
     }
     #ball{
         width: 5px;
@@ -60,15 +66,17 @@
 <body>
 <div class="wrapper">
     <main>
-        <h1>Welcome to Pong</h1>
-        <p id="playing_message">Il y a <span id="player_number"></span> joueurs connectés...</p>
-        <p id="top-points" class="points"></p>
-        <div class="canvas-holder">
-            <p id="left-points" class="points"></p>
-            <canvas id="canvas"></canvas>
-            <p id="right-points" class="points"></p>
+        <h1 id="title">Welcome to Pong</h1>
+        <p id="playing_message">Il y a actuellement <span id="player_number"></span> joueurs...</p>
+        <div id="game">
+            <p id="top-points" class="points"></p>
+            <div class="canvas-holder">
+                <p id="left-points" class="points"></p>
+                <canvas id="canvas"></canvas>
+                <p id="right-points" class="points"></p>
+            </div>
+            <p id="bottom-points" class="points"></p>
         </div>
-        <p id="bottom-points" class="points"></p>
     </main>
 </div>
 <script src="/socket.io/socket.io.js"></script>
@@ -93,6 +101,9 @@
     window.addEventListener('load', () => {
         var socket = io('/');
         const canvasField = document.getElementById('canvas');
+        const game = document.getElementById('game');
+        const pointsFields = document.getElementsByClassName('points');
+        const title = document.getElementById('title');
 
         socket.on('setField', (fieldData) => {
             let field = fieldData.field;
@@ -100,7 +111,10 @@
             let position = fieldData.position;
             canvasField.setAttribute('width', field.x);
             canvasField.setAttribute('height', field.y);
-            canvasField.style.transform = 'rotate(-'+positions[position]+'deg)';
+            game.style.transform = 'rotate(-'+positions[position]+'deg)';
+            for(var x=0; x<pointsFields.length; x++){
+                pointsFields[x].style.transform = 'rotate(-'+positions[position]+'deg)';
+            }
             canvasField.style.backgroundColor = 'rgba('+color+',.1)';
             if(position === 'top' || position === 'right'){
                 KEY_LEFT = 39;
@@ -114,6 +128,12 @@
             var message = document.createElement('p');
             message.textContent = 'Vous êtes en mode spectateur...';
             document.getElementsByTagName('main')[0].insertBefore(message, document.getElementById('playing_message'));
+        });
+
+        socket.on('dead', () => {
+            canvasField.style.backgroundColor = '';
+            canvasField.style.transform = 'scale(0)';
+            let text = title.textContent;
         });
         socket.on('gamerefresh', (data) => {
             let ctx = canvasField.getContext("2d");
